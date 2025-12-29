@@ -9,8 +9,11 @@ Given the input sequences, output and save specific predictions
 
 """
 
-import argparse
 import os
+# Fix for macOS OpenMP conflict (must be set before importing numpy/torch)
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+import argparse
 import sys
 from os import mkdir
 
@@ -128,7 +131,8 @@ def main():
         "--allow_vis", action='store_true'
     )
     parser.add_argument(
-        "--device", default="gpu", choices=["cpu", "gpu"]
+        "--device", default="auto", choices=["cpu", "gpu", "mps", "auto"],
+        help="Device to use: cpu, gpu (CUDA), mps (Apple Silicon), or auto (auto-detect best)"
     )
     parser.add_argument(
         "--gpu_id", default=0, type=int,
@@ -191,9 +195,24 @@ def main():
     else:
         threshold = cfg.MODEL.THRESHOLD
 
-    if args.device == "cpu":
+    # Device selection with MPS (Apple Silicon) support
+    if args.device == "auto":
+        if torch.cuda.is_available():
+            cfg.MODEL.DEVICE = "cuda"
+            cfg.MODEL.DEVICE_ID = (args.gpu_id,)
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            cfg.MODEL.DEVICE = "mps"
+        else:
+            cfg.MODEL.DEVICE = "cpu"
+    elif args.device == "cpu":
         cfg.MODEL.DEVICE = "cpu"
-    else:
+    elif args.device == "mps":
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            cfg.MODEL.DEVICE = "mps"
+        else:
+            print("Warning: MPS not available, falling back to CPU")
+            cfg.MODEL.DEVICE = "cpu"
+    else:  # gpu
         cfg.MODEL.DEVICE = "cuda"
         cfg.MODEL.DEVICE_ID = (args.gpu_id,)
 
@@ -204,8 +223,10 @@ def main():
         os.makedirs(output_dir)
 
     logger = setup_logger("prediction", output_dir, "prediction", 0)
-    if args.device == "gpu":
+    if cfg.MODEL.DEVICE == "cuda":
         logger.info("Using {} GPUS, GPU ID: {}".format(num_gpus, args.gpu_id))
+    elif cfg.MODEL.DEVICE == "mps":
+        logger.info("Using Apple MPS (Metal Performance Shaders)")
     else:
         logger.info("Using CPU")
     #logger.info(args)
@@ -223,7 +244,7 @@ def main():
 
     if cfg.MODEL.DEVICE == "cuda":
         os.environ['CUDA_VISIBLE_DEVICES'] = ",".join("%s"%i for i in cfg.MODEL.DEVICE_ID)   # int tuple -> str # cfg.MODEL.DEVICE_ID
-    cudnn.benchmark = True
+        cudnn.benchmark = True
 
     logger.info("Prediction Dataset: {}".format(cfg.DATA.DATASETS.ROOT_DIR))
     allow_nc = not args.forbid_nc

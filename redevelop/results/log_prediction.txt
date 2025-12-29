@@ -1,0 +1,8 @@
+2025-12-28 12:09:20,170 prediction INFO: Using Apple MPS (Metal Performance Shaders)
+2025-12-28 12:09:20,170 prediction INFO: Loaded configuration file pretrained/extract_embedding.yml
+2025-12-28 12:09:20,170 prediction INFO: Model File:none
+2025-12-28 12:09:20,170 prediction INFO: Batch Size:1
+2025-12-28 12:09:20,170 prediction INFO: Threshold:0.5
+2025-12-28 12:09:20,170 prediction INFO: Prediction Dataset: ../example/MIR921.fa
+2025-12-28 12:21:08,901 prediction.inference INFO: Enter inferencing for Custom set
+2025-12-28 12:21:10,374 prediction.inference INFO: Finish Prediction

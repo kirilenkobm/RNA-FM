@@ -54,7 +54,7 @@ _C.DATA.TRANSFORM.SEQUENCE_CROP_SIZE = 2000
 # -----------------------------------------------------------------------------
 # 2-1 Basic Config
 _C.MODEL = CN()
-# Using cuda or cpu for training
+# Device for training/inference: "cuda" (NVIDIA GPU), "mps" (Apple Silicon), or "cpu"
 _C.MODEL.DEVICE = "cuda"
 # ID number of GPU
 _C.MODEL.DEVICE_ID = (0, 1)  #it has bug with “both str and int convert to int, so use tuple instead which seems to turn into remove brackets automatically”

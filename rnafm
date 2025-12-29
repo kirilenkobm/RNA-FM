@@ -1,0 +1,28 @@
+#!/bin/bash
+# Wrapper script to run RNA-FM embedding extraction with auto-activation
+# Usage: rnafm [--fasta] SEQUENCE OUTPUT.npy [--mean] [--device auto|cpu|mps|cuda]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Try to find conda Python in common locations
+if [[ -x "$HOME/anaconda3/envs/RNA-FM/bin/python" ]]; then
+    PYTHON="$HOME/anaconda3/envs/RNA-FM/bin/python"
+elif [[ -x "$HOME/miniconda3/envs/RNA-FM/bin/python" ]]; then
+    PYTHON="$HOME/miniconda3/envs/RNA-FM/bin/python"
+elif [[ -x "$HOME/miniforge3/envs/RNA-FM/bin/python" ]]; then
+    PYTHON="$HOME/miniforge3/envs/RNA-FM/bin/python"
+elif [[ -x "/opt/homebrew/Caskroom/miniconda/base/envs/RNA-FM/bin/python" ]]; then
+    PYTHON="/opt/homebrew/Caskroom/miniconda/base/envs/RNA-FM/bin/python"
+else
+    # Fallback: try to use conda run
+    if command -v conda &> /dev/null; then
+        exec conda run -n RNA-FM python "$SCRIPT_DIR/extract_embedding.py" "$@"
+    else
+        echo "Error: Could not find RNA-FM conda environment" >&2
+        echo "Please activate it manually: conda activate RNA-FM" >&2
+        exit 1
+    fi
+fi
+
+exec "$PYTHON" "$SCRIPT_DIR/extract_embedding.py" "$@"
+
