@@ -38,15 +38,26 @@ def create_supervised_predictor(model, device=None):
         model (`torch.nn.Module`): the model to train
         metrics (dict of str - :class:`ignite.metrics.Metric`): a map of metric names to Metrics
         device (str, optional): device type specification (default: None).
-            Applies to both model and batches.
+            Applies to both model and batches. Supports "cpu", "cuda", and "mps".
     Returns:
         Engine: an evaluator engine with supervised inference function
     """
+    # Determine if we need to move model to device
     if device != "cpu":
-        if next(model.parameters()).is_cuda:
-            pass
-        else:
-            if torch.cuda.device_count() > 1:
+        model_on_device = False
+        if device == "cuda" and next(model.parameters()).is_cuda:
+            model_on_device = True
+        elif device == "mps" and hasattr(torch.backends, "mps"):
+            # Check if model is already on MPS
+            try:
+                if str(next(model.parameters()).device).startswith("mps"):
+                    model_on_device = True
+            except StopIteration:
+                pass
+        
+        if not model_on_device:
+            # Only use DataParallel for CUDA with multiple GPUs
+            if device == "cuda" and torch.cuda.device_count() > 1:
                 model = nn.DataParallel(model)
             model.to(device)
 
@@ -56,8 +67,8 @@ def create_supervised_predictor(model, device=None):
             # fetch data
             data, anns = batch
 
-            # place data and ann in CUDA
-            if torch.cuda.device_count() >= 1:
+            # Move data to device (works for cpu, cuda, and mps)
+            if device != "cpu":
                 for key in data.keys():
                     if isinstance(data[key], torch.Tensor):
                         data[key] = data[key].to(device)

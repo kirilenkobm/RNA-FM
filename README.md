@@ -1,4 +1,46 @@
 # RNA-FM: The RNA Foundation Model
+
+> **macOS Fork** — This fork adds Apple Silicon (MPS) support and a simplified `environment.yml` for macOS compatibility.  
+> Original repo: [ml4bio/RNA-FM](https://github.com/ml4bio/RNA-FM)
+
+## Quick Start (macOS)
+
+```bash
+# Install
+git clone https://github.com/YOUR_USERNAME/RNA-FM.git
+cd RNA-FM
+conda env create -f environment.yml
+conda activate RNA-FM
+pip install -e .
+
+# Extract embeddings (auto-detects MPS/CPU)
+./rnafm --fasta example/MIR921.fa output.npy
+./rnafm ACGUACGUACGU output.npy
+./rnafm --mean --device mps ACGUACGU output.npy  # mean-pooled, force MPS
+```
+
+<details>
+<summary>Python API</summary>
+
+```python
+import torch
+import fm
+
+device = "mps" if torch.backends.mps.is_available() else "cpu"
+model, alphabet = fm.pretrained.rna_fm_t12()
+model.eval().to(device)
+
+batch_converter = alphabet.get_batch_converter()
+_, _, tokens = batch_converter([("seq", "ACGUACGU")])
+
+with torch.no_grad():
+    emb = model(tokens.to(device), repr_layers=[12])["representations"][12]
+# emb shape: (1, L+2, 640) — remove BOS/EOS: emb[0, 1:-1, :]
+```
+</details>
+
+---
+
 [![Pic](./docs/pics/RNA-FM.png)](https://proj.cse.cuhk.edu.hk/rnafm/#/)
 
 [![arXiv](https://img.shields.io/badge/arXiv-2204.00300-b31b1b.svg)](https://arxiv.org/abs/2204.00300)
